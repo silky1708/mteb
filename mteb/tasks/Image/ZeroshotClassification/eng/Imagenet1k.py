@@ -17,7 +17,7 @@ class Imagenet1kClassification(AbsTaskZeroshotClassification):
             "path": "clip-benchmark/wds_imagenet1k",
             "revision": "b24c7a5a3ef12df09089055d1795e2ce7c7e7397",
         },
-        type="Classification",
+        type="ZeroShotClassification",
         category="i2t",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -28,8 +28,7 @@ class Imagenet1kClassification(AbsTaskZeroshotClassification):
         ),  # Estimated range for the collection of reviews
         domains=["Scene"],
         task_subtypes=["Object recognition"],
-        license="Not specified",
-        socioeconomic_status="mixed",
+        license="not specified",
         annotations_creators="human-annotated",
         dialect=[],
         modalities=["image"],

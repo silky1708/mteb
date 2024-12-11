@@ -4,6 +4,7 @@ import heapq
 import io
 import json
 import logging
+import math
 import os
 from collections import defaultdict
 from typing import Any
@@ -16,7 +17,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from mteb.encoder_interface import EncoderWithQueryCorpusEncode
+from mteb.encoder_interface import Encoder
 
 from ..Evaluator import Evaluator
 from ..utils import (
@@ -68,7 +69,7 @@ def custom_collate_fn(batch):
 class Any2AnyDenseRetrievalExactSearch:
     def __init__(
         self,
-        model: EncoderWithQueryCorpusEncode,
+        model: Encoder,
         encode_kwargs: dict[str, Any] = {},
         corpus_chunk_size: int = 20000,
         previous_results: str | None = None,
@@ -131,7 +132,7 @@ class Any2AnyDenseRetrievalExactSearch:
                 batch_size=self.encode_kwargs["batch_size"],
                 shuffle=False,
                 collate_fn=custom_collate_fn,
-                num_workers=max(1, os.cpu_count() // 2),
+                num_workers=min(math.floor(os.cpu_count() / 2), 16),
             )
             if q_modality == "image":
                 query_embeddings = self.model.get_image_embeddings(
@@ -181,7 +182,7 @@ class Any2AnyDenseRetrievalExactSearch:
                     batch_size=self.encode_kwargs["batch_size"],
                     shuffle=False,
                     collate_fn=custom_collate_fn,
-                    num_workers=max(1, os.cpu_count() // 2),
+                    num_workers=min(math.floor(os.cpu_count() / 2), 16),
                 )
                 if corpus_modality == "image":
                     sub_corpus_embeddings = self.model.get_image_embeddings(

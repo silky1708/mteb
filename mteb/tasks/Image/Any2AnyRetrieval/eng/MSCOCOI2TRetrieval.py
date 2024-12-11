@@ -14,7 +14,7 @@ class MSCOCOI2TRetrieval(AbsTaskAny2AnyRetrieval):
             "revision": "cca3a3e223763e6519a4d68936bc9279034d75d2",
             "trust_remote_code": True,
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="i2t",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -22,7 +22,7 @@ class MSCOCOI2TRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2018-01-01", "2018-12-31"),
         domains=["Encyclopaedic"],
         task_subtypes=["Image Text Retrieval"],
-        license="CC BY-SA 4.0",
+        license="cc-by-sa-4.0",
         annotations_creators="derived",
         dialect=[],
         modalities=["text", "image"],
@@ -36,13 +36,13 @@ class MSCOCOI2TRetrieval(AbsTaskAny2AnyRetrieval):
         organization={Springer}
         }""",
         descriptive_stats={
-            "n_samples": {"test": 1172},
+            "n_samples": {"test": 5000},
             "avg_character_length": {
                 "test": {
                     "average_document_length": 30.94235294117647,
                     "average_query_length": 131.56569965870307,
-                    "num_documents": 9350,
-                    "num_queries": 1172,
+                    "num_documents": 24809,
+                    "num_queries": 5000,
                     "average_relevant_docs_per_query": 1.0,
                 }
             },

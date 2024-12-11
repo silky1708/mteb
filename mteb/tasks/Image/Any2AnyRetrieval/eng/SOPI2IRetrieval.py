@@ -13,7 +13,7 @@ class SOPI2IRetrieval(AbsTaskAny2AnyRetrieval):
             "path": "JamieSJS/stanford-online-products",
             "revision": "0b3a1622902e6258425e673405bdfb1e5dfa8618",
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="i2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -21,7 +21,7 @@ class SOPI2IRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2019-07-17", "2019-07-17"),
         domains=["Encyclopaedic"],
         task_subtypes=["Object recognition"],
-        license="Not specified",
+        license="not specified",
         annotations_creators="derived",
         dialect=[],
         modalities=["image"],
@@ -35,7 +35,16 @@ class SOPI2IRetrieval(AbsTaskAny2AnyRetrieval):
 }
         """,
         descriptive_stats={
-            "n_samples": {"default": 120053},
+            "n_samples": {"test": 120053},
+            "avg_character_length": {
+                "test": {
+                    "average_document_length": 0.0,
+                    "average_query_length": 0.0,
+                    "num_documents": 120053,
+                    "num_queries": 120053,
+                    "average_relevant_docs_per_query": 7,
+                }
+            },
         },
     )
     skip_first_result = True

@@ -13,7 +13,7 @@ class METI2IRetrieval(AbsTaskAny2AnyRetrieval):
             "path": "JamieSJS/met",
             "revision": "08ceaa61c0d172214abb3b8e82971d8f69d2aec0",
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="i2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -21,7 +21,7 @@ class METI2IRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2021-12-06", "2021-12-14"),  # conference dates
         domains=["Encyclopaedic"],
         task_subtypes=["Object recognition"],
-        license="Not specified",
+        license="not specified",
         annotations_creators="derived",
         dialect=[],
         modalities=["image"],

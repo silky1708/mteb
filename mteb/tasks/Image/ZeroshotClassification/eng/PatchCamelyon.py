@@ -17,7 +17,7 @@ class PatchCamelyonClassification(AbsTaskZeroshotClassification):
             "path": "clip-benchmark/wds_vtab-pcam",
             "revision": "502695fe1a141108650e3c5b91c8b5e0ff84ed49",
         },
-        type="Classification",
+        type="ZeroShotClassification",
         category="i2t",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -28,8 +28,7 @@ class PatchCamelyonClassification(AbsTaskZeroshotClassification):
         ),  # Estimated range for the collection of reviews
         domains=["Medical"],
         task_subtypes=["Tumor detection"],
-        license="Not specified",
-        socioeconomic_status="mixed",
+        license="not specified",
         annotations_creators="derived",
         dialect=[],
         modalities=["image"],

@@ -14,7 +14,7 @@ class STS14VisualSTS(AbsTaskVisualSTS):
         description="SemEval STS 2014 dataset. Currently only the English dataset."
         + "rendered into images.",
         reference="https://arxiv.org/abs/2402.08183/",
-        type="STS",
+        type="VisualSTS",
         category="i2i",
         modalities=["image"],
         eval_splits=["test"],
@@ -23,7 +23,7 @@ class STS14VisualSTS(AbsTaskVisualSTS):
         date=("2012-01-01", "2012-08-31"),
         domains=["Blog", "Web", "Spoken"],
         task_subtypes=["Sentiment/Hate speech"],
-        license="Not specified",
+        license="not specified",
         annotations_creators="derived",
         dialect=[],
         sample_creation="rendered",

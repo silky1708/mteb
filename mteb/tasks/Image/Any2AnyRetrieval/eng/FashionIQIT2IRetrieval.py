@@ -14,7 +14,7 @@ class FashionIQIT2IRetrieval(AbsTaskAny2AnyRetrieval):
             "revision": "e6f0ec70becc413d940cd62b2cfa3b1d3a08c31a",
             # "trust_remote_code": True,
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="it2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -22,7 +22,7 @@ class FashionIQIT2IRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2021-01-01", "2021-12-31"),
         domains=["Encyclopaedic"],
         task_subtypes=["Image Text Retrieval"],
-        license="Apache-2.0",
+        license="apache-2.0",
         annotations_creators="derived",
         dialect=[],
         modalities=["text", "image"],
@@ -35,13 +35,13 @@ class FashionIQIT2IRetrieval(AbsTaskAny2AnyRetrieval):
   year={2021}
 }""",
         descriptive_stats={
-            "n_samples": {"test": 6000},
+            "n_samples": {"test": 6003},
             "avg_character_length": {
                 "test": {
                     "average_document_length": 0.0,
                     "average_query_length": 0.0,
-                    "num_documents": 74400,
-                    "num_queries": 6000,
+                    "num_documents": 74381,
+                    "num_queries": 6003,
                     "average_relevant_docs_per_query": 1.0,
                 }
             },

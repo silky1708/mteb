@@ -10,20 +10,18 @@ class Flickr30kT2IRetrieval(AbsTaskAny2AnyRetrieval):
         description="Retrieve images based on captions.",
         reference="https://www.semanticscholar.org/paper/From-image-descriptions-to-visual-denotations%3A-New-Young-Lai/44040913380206991b1991daf1192942e038fe31",
         dataset={
-            "path": "JamieSJS/flickr30k",
-            "revision": "a4cf34ac79215f9e2cd6a10342d84f606fc41cc3",
+            "path": "isaacchung/flickr30kt2i",
+            "revision": "e819702b287bfbe084e129a61f308a802b7c108e",
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="t2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
         main_score="ndcg_at_10",
         date=("2018-01-01", "2018-12-31"),
-        form=["written"],
-        domains=["Web"],
+        domains=["Web", "Written"],
         task_subtypes=["Image Text Retrieval"],
-        license="CC BY-SA 4.0",
-        socioeconomic_status="medium",
+        license="cc-by-sa-4.0",
         annotations_creators="derived",
         dialect=[],
         modalities=["text", "image"],
@@ -38,20 +36,14 @@ class Flickr30kT2IRetrieval(AbsTaskAny2AnyRetrieval):
   url={https://api.semanticscholar.org/CorpusID:3104920}
 }""",
         descriptive_stats={
-            "n_samples": {"default": 31014},  # qrels
+            "n_samples": {"test": 5000},
+            "avg_character_length": {
+                "test": {
+                    "average_document_length": 0.0,
+                    "average_query_length": 0.0,
+                    "num_documents": 1000,
+                    "num_queries": 5000,
+                }
+            },
         },
     )
-
-    def load_data(self, **kwargs):
-        super().load_data(**kwargs)
-        # swap corpus and query
-        for split in kwargs.get("eval_splits", self.metadata_dict["eval_splits"]):
-            self.queries[split], self.corpus[split] = (
-                self.corpus[split],
-                self.queries[split],
-            )
-            self.relevant_docs[split] = {
-                cid: {qid: score}
-                for qid, cid_score in self.relevant_docs[split].items()
-                for cid, score in cid_score.items()
-            }

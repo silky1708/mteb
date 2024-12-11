@@ -14,7 +14,7 @@ class CIRRIT2IRetrieval(AbsTaskAny2AnyRetrieval):
             "revision": "503301cd99348035b9675883a543aa1ded0cf07c",
             "trust_remote_code": True,
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="it2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -22,7 +22,7 @@ class CIRRIT2IRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2018-01-01", "2018-12-31"),
         domains=["Encyclopaedic"],
         task_subtypes=["Image Text Retrieval"],
-        license="CC BY-SA 4.0",
+        license="cc-by-sa-4.0",
         annotations_creators="derived",
         dialect=[],
         modalities=["text", "image"],
@@ -35,13 +35,13 @@ class CIRRIT2IRetrieval(AbsTaskAny2AnyRetrieval):
         year={2021}
         }""",
         descriptive_stats={
-            "n_samples": {"test": 1172},
+            "n_samples": {"test": 4170},
             "avg_character_length": {
                 "test": {
                     "average_document_length": 0.0,
                     "average_query_length": 0.0,
-                    "num_documents": 9350,
-                    "num_queries": 1172,
+                    "num_documents": 21551,
+                    "num_queries": 4170,
                     "average_relevant_docs_per_query": 1.0,
                 }
             },

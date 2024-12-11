@@ -10,7 +10,6 @@ from tqdm import tqdm
 from transformers import AutoModel
 
 from mteb.model_meta import ModelMeta
-from mteb.models.text_formatting_utils import corpus_to_texts
 
 
 class JinaCLIPModelWrapper:
@@ -26,14 +25,22 @@ class JinaCLIPModelWrapper:
             self.device
         )
 
-    def get_text_embeddings(self, texts: list[str], batch_size: int = 32):
+    def get_text_embeddings(
+        self,
+        texts: list[str],
+        batch_size: int = 32,
+        convert_to_numpy=False,
+        convert_to_tensor=True,
+    ):
         all_text_embeddings = []
 
         with torch.no_grad():
             for i in tqdm(range(0, len(texts), batch_size)):
                 batch_texts = texts[i : i + batch_size]
                 text_outputs = self.model.encode_text(
-                    batch_texts, convert_to_numpy=False, convert_to_tensor=True
+                    batch_texts,
+                    convert_to_numpy=convert_to_numpy,
+                    convert_to_tensor=convert_to_tensor,
                 )
                 all_text_embeddings.append(text_outputs.cpu())
 
@@ -41,15 +48,23 @@ class JinaCLIPModelWrapper:
         return all_text_embeddings
 
     def get_image_embeddings(
-        self, images: list[Image.Image] | DataLoader, batch_size: int = 32
+        self,
+        images: list[Image.Image] | DataLoader,
+        batch_size: int = 32,
+        convert_to_numpy=False,
+        convert_to_tensor=True,
     ):
         all_image_embeddings = []
 
         if isinstance(images, DataLoader):
             with torch.no_grad():
+                import torchvision.transforms.functional as F
+
                 for batch in tqdm(images):
                     image_outputs = self.model.encode_image(
-                        batch, convert_to_numpy=False, convert_to_tensor=True
+                        [F.to_pil_image(b.to("cpu")) for b in batch],
+                        convert_to_numpy=convert_to_numpy,
+                        convert_to_tensor=convert_to_tensor,
                     )
                     all_image_embeddings.append(image_outputs.cpu())
         else:
@@ -87,7 +102,7 @@ class JinaCLIPModelWrapper:
         image_embeddings = None
 
         if texts is not None:
-            text_embeddings = self.encode_text(
+            text_embeddings = self.get_text_embeddings(
                 texts,
                 batch_size=batch_size,
                 convert_to_numpy=False,
@@ -95,7 +110,7 @@ class JinaCLIPModelWrapper:
             )
 
         if images is not None:
-            image_embeddings = self.encode_image(
+            image_embeddings = self.get_image_embeddings(
                 images,
                 batch_size=batch_size,
                 convert_to_numpy=False,
@@ -125,35 +140,9 @@ class JinaCLIPModelWrapper:
         batch_size: int = 32,
         **kwargs: Any,
     ):
-        if "prompt_name" in kwargs:
-            kwargs.pop("prompt_name")
+        if "task_name" in kwargs:
+            kwargs.pop("task_name")
         return self.model.encode_text(sentences, batch_size=batch_size, **kwargs)
-
-    def encode_queries(self, queries: list[str], batch_size: int = 32, **kwargs: Any):
-        if "prompt_name" in kwargs:
-            kwargs.pop("prompt_name")
-        sentences = [
-            "Represent this sentence for searching relevant passages: " + sentence
-            for sentence in queries
-        ]
-        emb = self.encode(
-            sentences, batch_size=batch_size, normalize_embeddings=True, **kwargs
-        )
-        return emb
-
-    def encode_corpus(
-        self,
-        corpus: list[dict[str, str]] | dict[str, list[str]],
-        batch_size: int = 32,
-        **kwargs: Any,
-    ):
-        if "prompt_name" in kwargs:
-            kwargs.pop("prompt_name")
-        sentences = corpus_to_texts(corpus)
-        emb = self.encode(
-            sentences, batch_size=batch_size, normalize_embeddings=True, **kwargs
-        )
-        return emb
 
 
 jina_clip_v1 = ModelMeta(
@@ -164,7 +153,7 @@ jina_clip_v1 = ModelMeta(
     name="jinaai/jina-clip-v1",
     languages=["eng_Latn"],
     open_source=True,
-    revision="1cbe5e8b11ea3728df0b610d5453dfe739804aa9",
+    revision="06150c7c382d7a4faedc7d5a0d8cdb59308968f4",
     release_date="2024-05-30",
 )
 

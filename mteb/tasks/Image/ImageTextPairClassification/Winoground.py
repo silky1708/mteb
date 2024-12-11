@@ -16,8 +16,7 @@ class Winoground(AbsTaskImageTextPairClassification):
         reference="https://openaccess.thecvf.com/content/CVPR2022/html/Thrush_Winoground_Probing_Vision_and_Language_Models_for_Visio-Linguistic_Compositionality_CVPR_2022_paper",
         dataset={
             "path": "facebook/winoground",
-            "revision": "521ec2ba6f9a5d7380f7cca5a7b44aea5c1d677c",
-            "trust_remote_code": True,
+            "revision": "b400e173549071916ad1b3d449293bc8d8b4b763",
         },
         type="ImageTextPairClassification",
         category="i2t",
@@ -30,7 +29,7 @@ class Winoground(AbsTaskImageTextPairClassification):
         ),  # Estimated range for the collection of data
         domains=["Social"],  # Getty Images. Could be constructed?
         task_subtypes=["Caption Pairing"],
-        license="META Images Reseaerch License",
+        license="https://huggingface.co/datasets/facebook/winoground/blob/main/license_agreement.txt",
         annotations_creators="expert-annotated",
         dialect=[],
         modalities=["text", "image"],

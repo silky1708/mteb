@@ -13,7 +13,7 @@ class RP2kI2IRetrieval(AbsTaskAny2AnyRetrieval):
             "path": "JamieSJS/rp2k",
             "revision": "f8f82d4eb1aa4dc4dbf2c768596c8110a3703765",
         },
-        type="Retrieval",
+        type="Any2AnyRetrieval",
         category="i2i",
         eval_splits=["test"],
         eval_langs=["eng-Latn"],
@@ -21,7 +21,7 @@ class RP2kI2IRetrieval(AbsTaskAny2AnyRetrieval):
         date=("2009-01-01", "2010-04-01"),
         domains=["Web"],
         task_subtypes=["Object recognition"],
-        license="Not specified",
+        license="not specified",
         annotations_creators="derived",
         dialect=[],
         modalities=["image"],
@@ -34,7 +34,16 @@ class RP2kI2IRetrieval(AbsTaskAny2AnyRetrieval):
 }
         """,
         descriptive_stats={
-            "n_samples": {"default": 4409419},
+            "n_samples": {"test": 39457},
+            "avg_character_length": {
+                "test": {
+                    "average_document_length": 0.0,
+                    "average_query_length": 0.0,
+                    "num_documents": 39457,
+                    "num_queries": 39457,
+                    "average_relevant_docs_per_query": 111.8,
+                }
+            },
         },
     )
     skip_first_result = True
