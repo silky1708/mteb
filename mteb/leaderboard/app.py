@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from collections import defaultdict
 from pathlib import Path
+from urllib.parse import urlencode
 
 import gradio as gr
+import pandas as pd
 from gradio_rangeslider import RangeSlider
 
 import mteb
 from mteb.caching import json_cache
+from mteb.leaderboard.figures import performance_size_plot, radar_chart
 from mteb.leaderboard.table import scores_to_tables
 
 
@@ -23,6 +27,30 @@ def load_results():
             return mteb.BenchmarkResults.from_validated(**json.load(cache_file))
 
 
+def produce_benchmark_link(benchmark_name: str, request: gr.Request) -> str:
+    """Produces a URL for the selected benchmark."""
+    params = urlencode(
+        {
+            "benchmark_name": benchmark_name,
+        }
+    )
+    base_url = request.request.base_url
+    url = f"{base_url}?{params}"
+    md = f"```\n{url}\n```"
+    return md
+
+
+def set_benchmark_on_load(request: gr.Request):
+    query_params = request.query_params
+    return query_params.get("benchmark_name", "MTEB(Multilingual, beta)")
+
+
+def download_table(table: pd.DataFrame) -> Path:
+    file = tempfile.NamedTemporaryFile(delete=False, suffix=".csv")
+    table.to_csv(file)
+    return file.name
+
+
 def update_citation(benchmark_name: str) -> str:
     benchmark = mteb.get_benchmark(benchmark_name)
     if str(benchmark.citation) != "None":
@@ -32,11 +60,22 @@ def update_citation(benchmark_name: str) -> str:
     return citation
 
 
-def update_description(benchmark_name: str) -> str:
+def update_description(
+    benchmark_name: str, languages: list[str], task_types: list[str], domains: list[str]
+) -> str:
     benchmark = mteb.get_benchmark(benchmark_name)
     description = f"## {benchmark.name}\n{benchmark.description}\n"
+    n_languages = len(languages)
+    n_task_types = len(task_types)
+    n_tasks = len(benchmark.tasks)
+    n_domains = len(domains)
+    description += f" - **Number of languages**: {n_languages}\n"
+    description += f" - **Number of datasets**: {n_tasks}\n"
+    description += f" - **Number of task types**: {n_task_types}\n"
+    description += f" - **Number of domains**: {n_domains}\n"
     if str(benchmark.reference) != "None":
         description += f"\n[Click for More Info]({benchmark.reference})"
+
     return description
 
 
@@ -48,24 +87,29 @@ def format_list(props: list[str]):
     return ", ".join(props)
 
 
-def update_task_info(task_names: str) -> str:
+def update_task_info(task_names: str) -> gr.DataFrame:
     tasks = mteb.get_tasks(tasks=task_names)
-    df = tasks.to_dataframe()
+    df = tasks.to_dataframe(
+        properties=["name", "type", "languages", "domains", "reference", "main_score"]
+    )
     df["languages"] = df["languages"].map(format_list)
+    df = df.sort_values("name")
     df["domains"] = df["domains"].map(format_list)
+    df["name"] = "[" + df["name"] + "](" + df["reference"] + ")"
     df = df.rename(
         columns={
             "name": "Task Name",
             "type": "Task Type",
             "languages": "Languages",
             "domains": "Domains",
-            "license": "License",
+            "main_score": "Metric",
         }
     )
-    return df
+    df = df.drop(columns="reference")
+    return gr.DataFrame(df, datatype=["markdown"] + ["str"] * (len(df.columns) - 1))
 
 
-all_results = load_results().filter_models()
+all_results = load_results().join_revisions().filter_models()
 
 # Model sizes in million parameters
 min_model_size, max_model_size = 0, 10_000
@@ -85,28 +129,28 @@ benchmark_select = gr.Dropdown(
     info="Select one of our expert-selected benchmarks from MTEB publications.",
 )
 lang_select = gr.Dropdown(
-    default_results.languages,
+    all_results.languages,
     value=default_results.languages,
     multiselect=True,
     label="Language",
     info="Select languages to include.",
 )
 type_select = gr.Dropdown(
-    default_results.task_types,
+    all_results.task_types,
     value=default_results.task_types,
     multiselect=True,
     label="Task Type",
     info="Select task types to include.",
 )
 domain_select = gr.Dropdown(
-    default_results.domains,
+    all_results.domains,
     value=default_results.domains,
     multiselect=True,
     label="Domain",
     info="Select domains to include.",
 )
 task_select = gr.Dropdown(
-    default_results.task_names,
+    all_results.task_names,
     value=default_results.task_names,
     allow_custom_value=True,
     multiselect=True,
@@ -179,7 +223,7 @@ with gr.Blocks(fill_width=True, theme=gr.themes.Base(), head=head) as demo:
                             [
                                 (
                                     "Should be sentence-transformers compatible",
-                                    "sbert_compatible",
+                                    "Sentence Transformers",
                                 )
                             ],
                             value=[],
@@ -194,14 +238,56 @@ with gr.Blocks(fill_width=True, theme=gr.themes.Base(), head=head) as demo:
                             interactive=True,
                         )
     scores = gr.State(default_scores)
-    description = gr.Markdown(update_description, inputs=[benchmark_select])
+    with gr.Row():
+        with gr.Column():
+            description = gr.Markdown(
+                update_description,
+                inputs=[benchmark_select, lang_select, type_select, domain_select],
+            )
+            citation = gr.Markdown(update_citation, inputs=[benchmark_select])
+            with gr.Accordion("Share this benchmark:", open=False):
+                gr.Markdown(produce_benchmark_link, inputs=[benchmark_select])
+        with gr.Column():
+            with gr.Tab("Performance per Model Size"):
+                plot = gr.Plot(performance_size_plot, inputs=[summary_table])
+                gr.Markdown(
+                    "*We only display models that have been run on all tasks in the benchmark*"
+                )
+            with gr.Tab("Performance per Task Type (Radar Chart)"):
+                radar_plot = gr.Plot(radar_chart, inputs=[summary_table])
+                gr.Markdown(
+                    "*We only display models that have been run on all task types in the benchmark*"
+                )
     with gr.Tab("Summary"):
+        with gr.Accordion(
+            "What do aggregate measures (Rank(Borda), Mean(Task), etc.) mean?",
+            open=False,
+        ):
+            gr.Markdown(
+                """
+    **Rank(borda)** is computed based on the [borda count](https://en.wikipedia.org/wiki/Borda_count), where each task is treated as a preference voter, which gives votes on the models in accordance with their relative performance on the task. The best model obtains the highest number of votes. The model with the highest number of votes across tasks obtains the highest rank. The Borda rank tends to prefer models that perform well broadly across tasks. However, given that it is a rank it can be unclear if the two models perform similarly.
+
+    **Mean(Task)**: This is a naïve average computed across all the tasks within the benchmark. This score is simple to understand and is continuous as opposed to the Borda rank. However, the mean can overvalue tasks with higher variance in its scores. 
+
+    **Mean(TaskType)**: This is a weighted average across different task categories, such as classification or retrieval. It is computed by first computing the average by task category and then computing the average on each category. Similar to the Mean(Task) this measure is continuous and tends to overvalue tasks with higher variance. This score also prefers models that perform well across all task categories.
+            """
+            )
         summary_table.render()
+        download_summary = gr.DownloadButton("Download Table")
+        download_summary.click(
+            download_table, inputs=[summary_table], outputs=[download_summary]
+        )
     with gr.Tab("Performance per task"):
         per_task_table.render()
+        download_per_task = gr.DownloadButton("Download Table")
+        download_per_task.click(
+            download_table, inputs=[per_task_table], outputs=[download_per_task]
+        )
     with gr.Tab("Task information"):
         task_info_table = gr.DataFrame(update_task_info, inputs=[task_select])
-    citation = gr.Markdown(update_citation, inputs=[benchmark_select])
+
+    # This sets the benchmark from the URL query parameters
+    demo.load(set_benchmark_on_load, inputs=[], outputs=[benchmark_select])
 
     @gr.on(inputs=[scores, searchbar], outputs=[summary_table, per_task_table])
     def update_tables(scores, search_query: str):
@@ -220,10 +306,13 @@ with gr.Blocks(fill_width=True, theme=gr.themes.Base(), head=head) as demo:
     def on_select_benchmark(benchmark_name):
         benchmark = mteb.get_benchmark(benchmark_name)
         benchmark_results = benchmark.load_results(base_results=all_results)
+        task_types = benchmark_results.task_types
+        langs = benchmark_results.languages
+        domains = benchmark_results.domains
         return (
-            benchmark_results.languages,
-            benchmark_results.task_types,
-            benchmark_results.domains,
+            langs,
+            task_types,
+            domains,
         )
 
     @gr.on(
@@ -287,12 +376,13 @@ with gr.Blocks(fill_width=True, theme=gr.themes.Base(), head=head) as demo:
             domains=domains,
         )
         lower, upper = model_size
-        # Multiplying by millions
-        lower = lower * 1e6
-        upper = upper * 1e6
         # Setting to None, when the user doesn't specify anything
         if (lower == min_model_size) and (upper == max_model_size):
             lower, upper = None, None
+        else:
+            # Multiplying by millions
+            lower = lower * 1e6
+            upper = upper * 1e6
         benchmark_results = benchmark_results.filter_models(
             open_weights=availability,
             use_instructions=instructions,

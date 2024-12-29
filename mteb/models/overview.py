@@ -2,25 +2,35 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
+from huggingface_hub import ModelCard
 from sentence_transformers import SentenceTransformer
 
 from mteb.encoder_interface import Encoder
 from mteb.model_meta import ModelMeta
 from mteb.models import (
+    arctic_models,
     bge_models,
     bm25,
     cohere_models,
+    colbert_models,
     e5_instruct,
     e5_models,
     google_models,
     gritlm_models,
     gte_models,
+    ibm_granite_models,
+    jasper_models,
     jina_models,
+    linq_models,
     llm2vec_models,
+    misc_models,
+    model2vec_models,
     mxbai_models,
     nomic_models,
+    nvidia_models,
     openai_models,
     promptriever_models,
     repllama_models,
@@ -37,18 +47,31 @@ from mteb.models import (
 logger = logging.getLogger(__name__)
 
 model_modules = [
+    arctic_models,
     bge_models,
     bm25,
     cohere_models,
+    colbert_models,
     e5_instruct,
     e5_models,
     google_models,
+    google_models,
     gritlm_models,
     gte_models,
+    ibm_granite_models,
+    jina_models,
+    linq_models,
     llm2vec_models,
     mxbai_models,
+    model2vec_models,
+    misc_models,
     nomic_models,
+    nvidia_models,
     openai_models,
+    promptriever_models,
+    repllama_models,
+    rerankers_custom,
+    rerankers_monot5_based,
     ru_sentence_models,
     salesforce_models,
     sentence_transformers_models,
@@ -57,10 +80,11 @@ model_modules = [
     repllama_models,
     promptriever_models,
     jina_models,
+    jasper_models,
     uae_models,
     stella_models,
-    rerankers_monot5_based,
-    rerankers_custom,
+    uae_models,
+    voyage_models,
 ]
 MODEL_REGISTRY = {}
 
@@ -96,7 +120,7 @@ def get_model_metas(
         if (frameworks is not None) and not (frameworks <= set(model_meta.framework)):
             continue
         if (use_instructions is not None) and (
-            model_meta.use_instuctions != use_instructions
+            model_meta.use_instructions != use_instructions
         ):
             continue
         lower, upper = n_parameters_range
@@ -152,19 +176,44 @@ def get_model_meta(model_name: str, revision: str | None = None) -> ModelMeta:
         return MODEL_REGISTRY[model_name]
     else:  # assume it is a sentence-transformers model
         logger.info(
-            "Model not found in model registry, assuming it is a sentence-transformers model."
+            "Model not found in model registry, assuming it is on HF Hub model."
         )
         logger.info(
-            f"Attempting to extract metadata by loading the model ({model_name}) using sentence-transformers."
+            f"Attempting to extract metadata by loading the model ({model_name}) using HuggingFace."
         )
-        model = SentenceTransformer(
-            model_name, revision=revision, trust_remote_code=True
-        )
-        meta = model_meta_from_sentence_transformers(model)
-
+        meta = model_meta_from_hf_hub(model_name)
         meta.revision = revision
         meta.name = model_name
     return meta
+
+
+@lru_cache
+def model_meta_from_hf_hub(model_name: str) -> ModelMeta:
+    try:
+        card = ModelCard.load(model_name)
+        card_data = card.data.to_dict()
+        frameworks = ["PyTorch"]
+        if card_data.get("library_name", None) == "sentence-transformers":
+            frameworks.append("Sentence Transformers")
+        return ModelMeta(
+            name=model_name,
+            revision=None,
+            # TODO
+            release_date=None,
+            # TODO: We need a mapping between conflicting language codes
+            languages=None,
+            license=card_data.get("license", None),
+            framework=frameworks,
+            public_training_data=bool(card_data.get("datasets", None)),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to extract metadata from model: {e}.")
+        return ModelMeta(
+            name=None,
+            revision=None,
+            languages=None,
+            release_date=None,
+        )
 
 
 def model_meta_from_sentence_transformers(model: SentenceTransformer) -> ModelMeta:

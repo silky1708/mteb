@@ -72,11 +72,11 @@ class AbsTask(ABC):
         torch.manual_seed(self.seed)
         torch.cuda.manual_seed_all(self.seed)
 
-    def check_if_dataset_is_superseeded(self):
-        """Check if the dataset is superseeded by a newer version"""
+    def check_if_dataset_is_superseded(self):
+        """Check if the dataset is superseded by a newer version"""
         if self.superseded_by:
             logger.warning(
-                f"Dataset '{self.metadata.name}' is superseeded by '{self.superseded_by}', you might consider using the newer version of the dataset."
+                f"Dataset '{self.metadata.name}' is superseded by '{self.superseded_by}', you might consider using the newer version of the dataset."
             )
 
     def dataset_transform(self):
@@ -89,17 +89,18 @@ class AbsTask(ABC):
         self,
         model: Encoder,
         split: str = "test",
+        subsets_to_run: list[HFSubset] | None = None,
         *,
         encode_kwargs: dict[str, Any] = {},
         **kwargs: Any,
     ) -> dict[HFSubset, ScoresDict]:
         """Evaluates a Sentence Embedding Model on the task.
-        Returns a dict (that can be serialized to json).
 
         Args:
             model: Sentence embedding method. Implements a encode(sentences) method, that encodes sentences and returns a numpy matrix with the
                 sentence embeddings
             split: Which datasplit to be used.
+            subsets_to_run: List of HFSubsets to evaluate. If None, all subsets are evaluated.
             encode_kwargs: Additional keyword arguments that are passed to the model's `encode` method.
             kwargs: Additional keyword arguments that are passed to the _evaluate_subset method.
         """
@@ -110,6 +111,9 @@ class AbsTask(ABC):
 
         scores = {}
         hf_subsets = list(self.dataset.keys()) if self.is_multilingual else ["default"]
+
+        if subsets_to_run is not None:
+            hf_subsets = [s for s in hf_subsets if s in subsets_to_run]
 
         for hf_subset in hf_subsets:
             logger.info(
@@ -200,7 +204,11 @@ class AbsTask(ABC):
 
         descriptive_stats = {}
         hf_subset_stat = "hf_subset_descriptive_stats"
-        pbar_split = tqdm.tqdm(self.metadata.eval_splits, desc="Processing Splits...")
+        eval_splits = self.metadata.eval_splits
+        if self.metadata.type in ["Classification", "MultilabelClassification"]:
+            eval_splits += ["train"]
+
+        pbar_split = tqdm.tqdm(eval_splits, desc="Processing Splits...")
         for split in pbar_split:
             pbar_split.set_postfix_str(f"Split: {split}")
             logger.info(f"Processing metadata for split {split}")
@@ -215,12 +223,8 @@ class AbsTask(ABC):
                     if isinstance(self.metadata.eval_langs, dict)
                     else self.metadata.eval_langs
                 )
-                if self.metadata.type == "Classification":
-                    eval_langs += ["train"]
 
-                pbar_subsets = tqdm.tqdm(
-                    self.metadata.eval_langs, desc="Processing Languages..."
-                )
+                pbar_subsets = tqdm.tqdm(eval_langs, desc="Processing Languages...")
                 for hf_subset in pbar_subsets:
                     pbar_subsets.set_postfix_str(f"Language: {hf_subset}")
                     logger.info(f"Processing metadata for language {hf_subset}")

@@ -47,6 +47,11 @@ def instruct_wrapper(
                     "No instruction template provided. Instructions will be used as-is."
                 )
 
+            if "gte-Qwen" in model_name_or_path:
+                logger.warning(
+                    "Instructions are used in both query and docs, which may cause performance discrepancies from the original implementation."
+                )
+
             self.instruction_template = instruction_template
             super().__init__(model_name_or_path=model_name_or_path, mode=mode, **kwargs)
 
@@ -61,7 +66,7 @@ def instruct_wrapper(
             instruction = self.get_instruction(task_name, prompt_type)
 
             if self.instruction_template:
-                instruction = self.format_instruction(instruction)
+                instruction = self.format_instruction(instruction, prompt_type)
 
             logger.info(f"Using instruction: '{instruction}' for task: '{task_name}'")
             embeddings = super().encode(
@@ -71,10 +76,5 @@ def instruct_wrapper(
                 # sometimes in kwargs can be return_tensors=True
                 embeddings = embeddings.cpu().detach().float().numpy()
             return embeddings
-
-        def format_instruction(self, instruction: str) -> str:
-            if isinstance(self.instruction_template, str):
-                return self.instruction_template.format(instruction=instruction)
-            return self.instruction_template(instruction)
 
     return InstructWrapper(model_name_or_path, mode, instruction_template, **kwargs)

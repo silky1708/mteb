@@ -26,14 +26,26 @@ class ClassificationDescriptiveStatistics(DescriptiveStatistics):
     Attributes:
       num_samples: number of samples in the dataset.
       number_of_characters: Total number of symbols in the dataset.
+      num_texts_in_train: Number of texts in the train split
+
+      min_text_length: Minimum length of text
       average_text_length: Average length of text
+      max_text_length: Maximum length of text
+      unique_text: Number of unique texts
+
       unique_labels: Number of unique labels
       labels: dict of label frequencies
     """
 
     num_samples: int
     number_of_characters: int
+    num_texts_in_train: int | None
+
+    min_text_length: int
     average_text_length: float
+    max_text_length: int
+    unique_text: int
+
     unique_labels: int
     labels: dict[str, dict[str, int]]
 
@@ -46,15 +58,19 @@ class AbsTaskClassification(AbsTask):
     must contain the following columns:
         text: str
         label: int
+
+    Attributes:
+       samples_per_label: Number of samples to use pr. label. These samples are embedded and a classifier is fit using the labels and samples.
+
     """
 
     abstask_prompt = "Classify user passages."
+    samples_per_label: int = 8
 
     def __init__(
         self,
         method: str = "logReg",
         n_experiments: int | None = None,
-        samples_per_label: int | None = None,
         k: int = 3,
         **kwargs,
     ):
@@ -66,11 +82,6 @@ class AbsTaskClassification(AbsTask):
             n_experiments
             if n_experiments is not None
             else self.metadata_dict.get("n_experiments", 10)
-        )
-        self.samples_per_label: int = (  # type: ignore
-            samples_per_label
-            if samples_per_label is not None
-            else self.metadata_dict.get("samples_per_label", 8)
         )
 
         # kNN parameters
@@ -84,6 +95,7 @@ class AbsTaskClassification(AbsTask):
         model,
         eval_split: str = "test",
         train_split: str = "train",
+        subsets_to_run: list[HFSubset] | None = None,
         *,
         encode_kwargs: dict[str, Any] = {},
         **kwargs,
@@ -93,6 +105,8 @@ class AbsTaskClassification(AbsTask):
 
         scores = {}
         hf_subsets = list(self.dataset) if self.is_multilingual else ["default"]
+        if subsets_to_run is not None:
+            hf_subsets = [s for s in hf_subsets if s in subsets_to_run]
 
         for hf_subset in hf_subsets:
             logger.info(
@@ -206,25 +220,40 @@ class AbsTaskClassification(AbsTask):
     def _calculate_metrics_from_split(
         self, split: str, hf_subset: str | None = None, compute_overall: bool = False
     ) -> ClassificationDescriptiveStatistics:
+        train_text = []
         if hf_subset:
             text = self.dataset[hf_subset][split]["text"]
             label = self.dataset[hf_subset][split]["label"]
+            if split != "train":
+                train_text = self.dataset[hf_subset]["train"]["text"]
         elif compute_overall:
             text = []
             label = []
             for hf_subset in self.metadata.eval_langs:
                 text.extend(self.dataset[hf_subset][split]["text"])
                 label.extend(self.dataset[hf_subset][split]["label"])
+                if split != "train":
+                    train_text.extend(self.dataset[hf_subset]["train"]["text"])
         else:
             text = self.dataset[split]["text"]
             label = self.dataset[split]["label"]
+            if split != "train":
+                train_text = self.dataset["train"]["text"]
 
-        total_text_len = sum([len(t) for t in text])
+        text_len = [len(t) for t in text]
+        total_text_len = sum(text_len)
         label_count = Counter(label)
+        num_texts_in_train = (
+            len(set(text) & set(train_text)) if split != "train" else None
+        )
         return ClassificationDescriptiveStatistics(
             num_samples=len(text),
             number_of_characters=total_text_len,
+            num_texts_in_train=num_texts_in_train,
+            min_text_length=min(text_len),
             average_text_length=total_text_len / len(text),
+            max_text_length=max(text_len),
+            unique_text=len(set(text)),
             unique_labels=len(label_count),
             labels={
                 str(label): {"count": count} for label, count in label_count.items()
