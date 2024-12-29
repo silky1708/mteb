@@ -18,7 +18,7 @@ def create_slurm_job_file(
 ) -> Path:
     """Create slurm job file for running a model on a task"""
     slurm_job = f"{slurm_prefix}\n"
-    slurm_job += f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} --co2_tracker true --batch_size 4"
+    slurm_job += f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} --co2_tracker true --batch_size 64"
 
     model_path_name = model_name.replace("/", "__")
 
@@ -61,15 +61,26 @@ if __name__ == "__main__":
     slurm_prefix = """#!/bin/bash
 #SBATCH --job-name=mteb
 #SBATCH --nodes=1
-#SBATCH --partition=a3
+#SBATCH --partition=a3low
 #SBATCH --gres=gpu:8                 # number of gpus
 #SBATCH --time 24:00:00             # maximum execution time (HH:MM:SS)
+#SBATCH --output=/data/niklas/jobs/%x-%j.out           # output file name
+"""
+    slurm_prefix = """#!/bin/bash
+#SBATCH --job-name=gritkto
+#SBATCH --nodes=1
+#SBATCH --partition=a3mixedlow
+#SBATCH --gres=gpu:8                 # number of gpus
+#SBATCH --time 30-00:00:00             # maximum execution time (HH:MM:SS)
 #SBATCH --output=/data/niklas/jobs/%x-%j.out           # output file name
 """
 ##SBATCH --exclusive
     project_root = Path(__file__).parent / ".." / ".." / ".."
     # results_folder = project_root / "results"
-    results_folder = Path("/data/niklas/results/results")
+    #results_folder = Path("/data/niklas/results/results")
+    #results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-noinstruct")
+    results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-pertasktypeinstruct")
+    #results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-oneinstruct")
     slurm_jobs_folder = Path(__file__).parent / "slurm_jobs"
 
     model_names = [
@@ -81,14 +92,34 @@ if __name__ == "__main__":
         #"sentence-transformers/LaBSE",
         #"intfloat/multilingual-e5-large-instruct",
         #"intfloat/e5-mistral-7b-instruct",
-        #"GritLM/GritLM-7B",
+        "GritLM/GritLM-7B",
         #"GritLM/GritLM-8x7B",
         #"intfloat/multilingual-e5-small",
         #"intfloat/multilingual-e5-base",
         #"intfloat/multilingual-e5-large",
-        "BAAI/bge-m3",
-        #"Alibaba-NLP/gte-multilingual-base",
+#        "BAAI/bge-m3",
+#        "Alibaba-NLP/gte-multilingual-base",
         #"voyage-multilingual-2",
+#        "facebook/mcontriever-msmarco",
+#        "nthakur/mcontriever-base-msmarco",
+#        "castorini/mdpr-tied-pft-msmarco",
+        # "Snowflake/snowflake-arctic-embed-m-v1.5",
+        # "BAAI/bge-small-en-v1.5",
+        # "BAAI/bge-base-en-v1.5",
+        # "BAAI/bge-large-en-v1.5",
+        # "jinaai/jina-embeddings-v3",
+        #"McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-supervised",
+        # "mixedbread-ai/mxbai-embed-large-v1",
+        # "nomic-ai/nomic-embed-text-v1.5",
+        # "Salesforce/SFR-Embedding-2_R",
+        # "WhereIsAI/UAE-Large-V1",
+        # "dunzhang/stella_en_400M_v5",
+        # "dunzhang/stella_en_1.5B_v5",
+        # "intfloat/e5-small-v2",
+        # "intfloat/e5-base-v2",
+        # "intfloat/e5-large-v2",
+        # "Alibaba-NLP/gte-Qwen2-7B-instruct",
+        #"GritLM/GritLM-8x7B",
     ]
 
     # expanding to a full list of tasks
@@ -106,39 +137,9 @@ if __name__ == "__main__":
         #    "Summarization",
         #],
         tasks=[
-            #"LivedoorNewsClustering",
-            #"FaithDial",
-            #"STS22",
-            #"StatcanDialogueDatasetRetrieval",
-            #"WikipediaRetrievalMultilingual"
-            #"RARbMath"
-            #"Touche2020",
-            #"WebLINXCandidatesReranking",
-            #"MultiLongDocRetrieval",
-            #"CodeEditSearchRetrieval",
-            #"BUCC.v2",
-            #"OpusparcusPC",
-
-            "DBPediaHardNegatives",
-            "MIRACLRetrievalHardNegatives",
-            "NeuCLIR2023RetrievalHardNegatives",
-            "NeuCLIR2022RetrievalHardNegatives",
-            "RiaNewsRetrievalHardNegatives",
-            "HotpotQA-PLHardNegatives",
-            "DBPedia-PLHardNegatives",
-            "NQ-PLHardNegatives",
-            "Quora-PLHardNegatives",
-            "MSMARCO-PLHardNegatives",
-            "ClimateFEVERHardNegatives",
-            "QuoraRetrievalHardNegatives",
-            "FEVERHardNegatives",
-            "HotpotQAHardNegatives",
-            "NQHardNegatives",
-            "TopiOCQAHardNegatives",
-            "MSMARCOHardNegatives",
-
             "BornholmBitextMining",
             "BibleNLPBitextMining",
+            "BUCC.v2",
             "DiaBlaBitextMining",
             "FloresBitextMining",
             "IN22GenBitextMining",
@@ -267,10 +268,11 @@ if __name__ == "__main__":
             "STS22.v2",
             "STSES",
             "STSB",
-            "SummEvalSummarization.v2",
-
+            "MIRACLRetrievalHardNegatives",
         ],
     )
+
+    # TopiOCQAHardNegatives
 
     # WE ALSO NEED TO RUN THESE
     retrieval_to_be_downsampled = [
@@ -297,6 +299,13 @@ if __name__ == "__main__":
     ]
 
     tasks = [t for t in tasks if t.metadata.name not in retrieval_to_be_downsampled]
+    # tasks = mteb.get_benchmark("MTEB(multilingual)")
+    tasks = mteb.get_benchmark("MTEB(eng, classic)")
+    #tasks = [t for t in tasks if t.metadata.type in ["Classification"]]
+    # tasks = [t for t in tasks if t.metadata.type in ["PairClassification"]]
+    #tasks = [t for t in tasks if t.metadata.type in ["STS"]]
+    #tasks = [t for t in tasks if t.metadata.type in ["Retrieval"]]
+    tasks = mteb.get_tasks(tasks=["STS22.v2",])
 
     slurm_jobs_folder.mkdir(exist_ok=True)
     files = create_slurm_job_files(

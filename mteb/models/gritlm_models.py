@@ -11,9 +11,17 @@ logger = logging.getLogger(__name__)
 
 
 def gritlm_instruction(instruction: str = "") -> str:
-    return (
-        "<|user|>\n" + instruction + "\n<|embed|>\n" if instruction else "<|embed|>\n"
-    )
+    #return "<|embed|>\n"
+    #return "<|user|>\nGiven a web search query, retrieve relevant passages that answer the query\n<|embed|>\n"
+    #return "<|user|>\nRetrieve semantically similar text.\n<|embed|>\n"
+    #return "<|user|>\nRetrieve semantically similar text.\n<|embed|>\n"
+    #return "<|user|>\nGiven a query, retrieve relevant passages \n<|embed|>\n"
+
+    return "<|user|>\nRetrieve relevant text.\n<|embed|>\n"
+
+    #return (
+    #    "<|user|>\n" + instruction + "\n<|embed|>\n" if instruction else "<|embed|>\n"
+    #)
 
 
 gritlm7b = ModelMeta(
@@ -46,6 +54,7 @@ gritlm8x7b = ModelMeta(
         instruction_template=gritlm_instruction,
         mode="embedding",
         torch_dtype="auto",
+        device_map="auto",
     ),
     name="GritLM/GritLM-8x7B",
     languages=["eng_Latn", "fra_Latn", "deu_Latn", "ita_Latn", "spa_Latn"],

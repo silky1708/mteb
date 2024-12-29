@@ -15,6 +15,9 @@ from .wrapper import Wrapper
 logger = logging.getLogger(__name__)
 
 
+
+
+
 class OpenAIWrapper(Wrapper):
     def __init__(
         self,
@@ -29,6 +32,11 @@ class OpenAIWrapper(Wrapper):
         """
         requires_package(self, "openai", "Openai text embedding")
         from openai import OpenAI
+        if model_name in ["text-embedding-3-small", "text-embedding-3-large"]:
+            requires_package(self, "tiktoken", "Openai text embedding")
+            import tiktoken
+            self.max_tokens = 8191
+            self.encoding = tiktoken.get_encoding("cl100k_base")
 
         requires_package(self, "tiktoken", "Tiktoken package")
         import tiktoken
@@ -43,6 +51,10 @@ class OpenAIWrapper(Wrapper):
         """Truncate a string to have `max_tokens` according to the given encoding."""
         truncated_sentence = self._encoding.encode(text)[: self._max_tokens]
         return self._encoding.decode(truncated_sentence)
+
+    def truncate_text_tokens(self, text):
+        """Truncate a string to have `max_tokens` according to the given encoding."""
+        return self.encoding.encode(text)[:self.max_tokens]
 
     def encode(self, sentences: list[str], **kwargs: Any) -> np.ndarray:
         requires_package(self, "openai", "Openai text embedding")
@@ -63,7 +75,7 @@ class OpenAIWrapper(Wrapper):
             else:
                 trimmed_sentences.append(sentence)
 
-        max_batch_size = 2048
+        max_batch_size = kwargs.get("batch_size", 2048)
         sublists = [
             trimmed_sentences[i : i + max_batch_size]
             for i in range(0, len(trimmed_sentences), max_batch_size)

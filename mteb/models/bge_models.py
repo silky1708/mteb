@@ -115,7 +115,7 @@ bge_m3 = ModelMeta(
     loader=partial(BGEM3Wrapper, model_name="BAAI/bge-m3", func="dense_vecs"),  # type: ignore
     name="BAAI/bge-m3",
     languages=["eng_Latn"],
-    open_source=True,
+    open_weights=True,
     revision="5617a9f61b028005a4858fdac845db406aefb181",
     release_date="2024-02-05",  # initial commit of hf model.
 )

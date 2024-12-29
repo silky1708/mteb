@@ -131,7 +131,7 @@ gte_multilingual_base = ModelMeta(
     loader=partial(GTESTWrapper, model_name="Alibaba-NLP/gte-multilingual-base"),
     name="Alibaba-NLP/gte-multilingual-base",
     languages=None,
-    open_source=True,
+    open_weights=True,
     revision="7fc06782350c1a83f88b15dd4b38ef853d3b8503",
     release_date="2024-07-29",
 )
