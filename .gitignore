@@ -145,3 +145,10 @@ tests/create_meta/model_card.md
 # removed results from mteb repo they are now available at: https://github.com/embeddings-benchmark/results
 results/
 uv.lock
+
+# leaderboard cache
+mteb/leaderboard/__cached_results.json
+
+# scripts when running slurm scripts locally
+scripts/mmteb/running_model/slurm_jobs
+scripts/running_model/slurm_jobs
