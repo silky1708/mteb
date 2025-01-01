@@ -18,7 +18,14 @@ def create_slurm_job_file(
 ) -> Path:
     """Create slurm job file for running a model on a task"""
     slurm_job = f"{slurm_prefix}\n"
-    slurm_job += f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} --co2_tracker true --batch_size 64"
+    # slurm_job += f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} --co2_tracker true --batch_size 64"
+    model_name_without_slash = model_name.replace("/", "__")
+    slurm_job += (
+        f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} "
+        f"--co2_tracker true --batch_size 8 || (mkdir -p /data/niklas/mteb/failures && "
+        f"echo '{model_name}_{task_name}' >> /data/niklas/mteb/failures/{model_name_without_slash}_{task_name}.txt)"
+    )
+
 
     model_path_name = model_name.replace("/", "__")
 
@@ -53,262 +60,126 @@ def create_slurm_job_files(
 def run_slurm_jobs(files: list[Path]) -> None:
     """Run slurm jobs based on the files provided"""
     for file in files:
+        print(f"Preparing to run {file}")
+        # Only run if squeue --me | wc -l has less than 250 jobs
+        # Technically scheduler allows more than 250 concurrent jobs but usually at 250 all GPUs are busy anyways so it keeps the queue cleaner
+        while int(
+            subprocess.run(["squeue", "--me"], capture_output=True, text=True).stdout.count("\n")
+        ) > 250:
+            print("Waiting for jobs to finish...")
+            subprocess.run(["sleep", "10"])
         subprocess.run(["sbatch", file])
 
 
 if __name__ == "__main__":
-    # SHOULD BE UPDATED
-    slurm_prefix = """#!/bin/bash
-#SBATCH --job-name=mteb
+    # Update prefixes to match your cluster configuration
+    slurm_prefix_8gpus = """#!/bin/bash
+#SBATCH --job-name=gritkto
 #SBATCH --nodes=1
 #SBATCH --partition=a3low
 #SBATCH --gres=gpu:8                 # number of gpus
-#SBATCH --time 24:00:00             # maximum execution time (HH:MM:SS)
+#SBATCH --time 30-00:00:00             # maximum execution time (HH:MM:SS)
 #SBATCH --output=/data/niklas/jobs/%x-%j.out           # output file name
 """
     slurm_prefix = """#!/bin/bash
 #SBATCH --job-name=gritkto
 #SBATCH --nodes=1
 #SBATCH --partition=a3mixedlow
-#SBATCH --gres=gpu:8                 # number of gpus
+#SBATCH --gres=gpu:1                 # number of gpus
 #SBATCH --time 30-00:00:00             # maximum execution time (HH:MM:SS)
 #SBATCH --output=/data/niklas/jobs/%x-%j.out           # output file name
 """
 ##SBATCH --exclusive
     project_root = Path(__file__).parent / ".." / ".." / ".."
     # results_folder = project_root / "results"
-    #results_folder = Path("/data/niklas/results/results")
+    results_folder = Path("/data/niklas/results/results")
     #results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-noinstruct")
-    results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-pertasktypeinstruct")
+    #results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-pertasktypeinstruct")
     #results_folder = Path("/data/niklas/results/results/GritLM__GritLM-7B-oneinstruct")
     slurm_jobs_folder = Path(__file__).parent / "slurm_jobs"
 
-    model_names = [
-        #"sentence-transformers/all-MiniLM-L6-v2",
-        #"sentence-transformers/all-MiniLM-L12-v2",
-        #"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-        #"sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
-        #"sentence-transformers/all-mpnet-base-v2",
-        #"sentence-transformers/LaBSE",
-        #"intfloat/multilingual-e5-large-instruct",
-        #"intfloat/e5-mistral-7b-instruct",
-        "GritLM/GritLM-7B",
-        #"GritLM/GritLM-8x7B",
-        #"intfloat/multilingual-e5-small",
-        #"intfloat/multilingual-e5-base",
-        #"intfloat/multilingual-e5-large",
-#        "BAAI/bge-m3",
-#        "Alibaba-NLP/gte-multilingual-base",
-        #"voyage-multilingual-2",
-#        "facebook/mcontriever-msmarco",
-#        "nthakur/mcontriever-base-msmarco",
-#        "castorini/mdpr-tied-pft-msmarco",
-        # "Snowflake/snowflake-arctic-embed-m-v1.5",
-        # "BAAI/bge-small-en-v1.5",
-        # "BAAI/bge-base-en-v1.5",
-        # "BAAI/bge-large-en-v1.5",
-        # "jinaai/jina-embeddings-v3",
-        #"McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-supervised",
-        # "mixedbread-ai/mxbai-embed-large-v1",
-        # "nomic-ai/nomic-embed-text-v1.5",
-        # "Salesforce/SFR-Embedding-2_R",
-        # "WhereIsAI/UAE-Large-V1",
-        # "dunzhang/stella_en_400M_v5",
-        # "dunzhang/stella_en_1.5B_v5",
-        # "intfloat/e5-small-v2",
-        # "intfloat/e5-base-v2",
-        # "intfloat/e5-large-v2",
-        # "Alibaba-NLP/gte-Qwen2-7B-instruct",
-        #"GritLM/GritLM-8x7B",
-    ]
+    # Select via model name
+    # model_names = [
+    #     "GritLM/GritLM-7B",
+    #     "GritLM/GritLM-8x7B",
+    # ]
 
-    # expanding to a full list of tasks
-    tasks = mteb.get_tasks(
-        #task_types=[
-        #    "BitextMining",
-        #    "Classification",
-        #    "Clustering",
-        #    "MultilabelClassification",
-        #    "PairClassification",
-        #    "Reranking",
-        #    "Retrieval",
-        #    "InstructionRetrieval",
-        #    "STS",
-        #    "Summarization",
-        #],
-        tasks=[
-            "BornholmBitextMining",
-            "BibleNLPBitextMining",
-            "BUCC.v2",
-            "DiaBlaBitextMining",
-            "FloresBitextMining",
-            "IN22GenBitextMining",
-            "IndicGenBenchFloresBitextMining",
-            "NollySentiBitextMining",
-            "NorwegianCourtsBitextMining",
-            "NTREXBitextMining",
-            "NusaTranslationBitextMining",
-            "NusaXBitextMining",
-            "Tatoeba",
-            "BulgarianStoreReviewSentimentClassfication",
-            "CzechProductReviewSentimentClassification",
-            "GreekLegalCodeClassification",
-            "DBpediaClassification",
-            "FinancialPhrasebankClassification",
-            "PoemSentimentClassification",
-            "ToxicConversationsClassification",
-            "TweetTopicSingleClassification",
-            "EstonianValenceClassification",
-            "FilipinoShopeeReviewsClassification",
-            "GujaratiNewsClassification",
-            "SentimentAnalysisHindi",
-            "IndonesianIdClickbaitClassification",
-            "ItaCaseholdClassification",
-            "KorSarcasmClassification",
-            "KurdishSentimentClassification",
-            "MacedonianTweetSentimentClassification",
-            "AfriSentiClassification",
-            "AmazonCounterfactualClassification",
-            "CataloniaTweetClassification",
-            "CyrillicTurkicLangClassification",
-            "IndicLangClassification",
-            "MasakhaNEWSClassification",
-            "MassiveIntentClassification",
-            "MultiHateClassification",
-            "NordicLangClassification",
-            "NusaParagraphEmotionClassification",
-            "NusaX-senti",
-            "ScalaClassification",
-            "SwissJudgementClassification",
-            "NepaliNewsClassification",
-            "OdiaNewsClassification",
-            "PunjabiNewsClassification",
-            "PolEmo2.0-OUT",
-            "PAC",
-            "SinhalaNewsClassification",
-            "CSFDSKMovieReviewSentimentClassification",
-            "SiswatiNewsClassification",
-            "SlovakMovieReviewSentimentClassification",
-            "SwahiliNewsClassification",
-            "DalajClassification",
-            "TswanaNewsClassification",
-            "IsiZuluNewsClassification",
-            "WikiCitiesClustering",
-            "MasakhaNEWSClusteringS2S",
-            "RomaniBibleClustering",
-            "ArXivHierarchicalClusteringP2P",
-            "ArXivHierarchicalClusteringS2S",
-            "BigPatentClustering.v2",
-            "BiorxivClusteringP2P.v2",
-            "MedrxivClusteringP2P.v2",
-            "StackExchangeClustering.v2",
-            "AlloProfClusteringS2S.v2",
-            "HALClusteringS2S.v2",
-            "SIB200ClusteringS2S",
-            "WikiClusteringP2P.v2",
-            "SNLHierarchicalClusteringP2P",
-            "PlscClusteringP2P.v2",
-            "SwednClusteringP2P",
-            "CLSClusteringP2P.v2",
-            "StackOverflowQA",
-            "TwitterHjerneRetrieval",
-            "AILAStatutes",
-            "ArguAna",
-            "HagridRetrieval",
-            "LegalBenchCorporateLobbying",
-            "LEMBPasskeyRetrieval",
-            "SCIDOCS",
-            "SpartQA",
-            "TempReasonL1",
-            "TRECCOVID",
-            "WinoGrande",
-            "BelebeleRetrieval",
-            "MLQARetrieval",
-            "StatcanDialogueDatasetRetrieval",
-            "WikipediaRetrievalMultilingual",
-            "CovidRetrieval",
-            "Core17InstructionRetrieval",
-            "News21InstructionRetrieval",
-            "Robust04InstructionRetrieval",
-            "KorHateSpeechMLClassification",
-            "MalteseNewsClassification",
-            "MultiEURLEXMultilabelClassification",
-            "BrazilianToxicTweetsClassification",
-            "CEDRClassification",
-            "CTKFactsNLI",
-            "SprintDuplicateQuestions",
-            "TwitterURLCorpus",
-            "ArmenianParaphrasePC",
-            "indonli",
-            "OpusparcusPC",
-            "PawsXPairClassification",
-            "RTE3",
-            "XNLI",
-            "PpcPC",
-            "TERRa",
-            "WebLINXCandidatesReranking",
-            "AlloprofReranking",
-            "VoyageMMarcoReranking",
-            "WikipediaRerankingMultilingual",
-            "RuBQReranking",
-            "T2Reranking",
-            "GermanSTSBenchmark",
-            "SICK-R",
-            "STS12",
-            "STS13",
-            "STS14",
-            "STS15",
-            "STSBenchmark",
-            "FaroeseSTS",
-            "FinParaSTS",
-            "JSICK",
-            "IndicCrosslingualSTS",
-            "SemRel24STS",
-            "STS17",
-            "STS22.v2",
-            "STSES",
-            "STSB",
-            "MIRACLRetrievalHardNegatives",
-        ],
-    )
+    # Select tasks
+    # tasks = mteb.get_tasks(
+    #     #task_types=[
+    #     #    "BitextMining",
+    #     #    "Classification",
+    #     #    "Clustering",
+    #     #    "MultilabelClassification",
+    #     #    "PairClassification",
+    #     #    "Reranking",
+    #     #    "Retrieval",
+    #     #    "InstructionRetrieval",
+    #     #    "STS",
+    #     #    "Summarization",
+    #     #],
+    #     tasks=[
+    #         "BornholmBitextMining",
+    #         "GreekLegalCodeClassification",
+    #     ],
+    # )
 
-    # TopiOCQAHardNegatives
+    # tasks = mteb.get_benchmark("MTEB(eng, classic)")
 
-    # WE ALSO NEED TO RUN THESE
-    retrieval_to_be_downsampled = [
-        "TopiOCQA",
-        "MSMARCO-PL",
-        "ClimateFEVER",
-        "FEVER",
-        "HotpotQA",
-        "HotpotQA-PL",
-        "DBPedia",
-        "DBPedia-PL",
-        "NeuCLIR2022Retrieval",
-        "NeuCLIR2023Retrieval",
-        "NeuCLIR2022Retrieval",
-        "NeuCLIR2023Retrieval",
-        "NQ",
-        "NQ-PL",
-        "NeuCLIR2022Retrieval",
-        "NeuCLIR2023Retrieval",
-        "MIRACLRetrieval",
-        "RiaNewsRetrieval",
-        "Quora-PL",
-        "QuoraRetrieval",
-    ]
-
-    tasks = [t for t in tasks if t.metadata.name not in retrieval_to_be_downsampled]
-    # tasks = mteb.get_benchmark("MTEB(multilingual)")
-    tasks = mteb.get_benchmark("MTEB(eng, classic)")
-    #tasks = [t for t in tasks if t.metadata.type in ["Classification"]]
+    # Custom removal of tasks/types
+    # tasks_to_remove = [
+    #     "ClimateFEVER",
+    # ]
+    # tasks = [t for t in tasks if t.metadata.name not in tasks_to_remove]
     # tasks = [t for t in tasks if t.metadata.type in ["PairClassification"]]
-    #tasks = [t for t in tasks if t.metadata.type in ["STS"]]
-    #tasks = [t for t in tasks if t.metadata.type in ["Retrieval"]]
-    tasks = mteb.get_tasks(tasks=["STS22.v2",])
 
     slurm_jobs_folder.mkdir(exist_ok=True)
-    files = create_slurm_job_files(
-        model_names, tasks, results_folder, slurm_prefix, slurm_jobs_folder
-    )
-    run_slurm_jobs(files)
+
+    import json
+    with open("/data/niklas/results/missing_results_7.json", "r") as f:
+        x = json.load(f)
+
+    slurm_job_files = []
+    from mteb.models import MODEL_REGISTRY
+    for i, (bench, models) in enumerate(list(x.items())):
+        # if bench in ["LongEmbed", "MTEB(Europe, beta)", "MTEB(Indic, beta)", "MTEB(jpn)", "MTEB(multilingual)"]: continue
+        print(f"Running benchmark {bench}")
+        for j, (model, tasks) in enumerate(models.items()):
+            # if j in [0, 1]: continue
+            model_names = [x for x in MODEL_REGISTRY if model == x.split("/")[-1]]
+            if len(model_names) == 0:
+                print(f"Model {model} not found; trying coarse matching")
+                model_names = [x for x in MODEL_REGISTRY if model in x.split("/")[-1]]
+                if len(model_names) == 0:
+                    print(f"Model {model} still not found; trying coarser matching")
+                    model_names = [x for x in MODEL_REGISTRY if model in x]
+                    if len(model_names) == 0:
+                        print(f"Model {model} not found; skipping")
+            if len(model_names) > 1:
+                print(f"Model {model} has multiple matches: {model_names}")
+                continue
+            model_name = model_names[0]
+            for k, task_name in enumerate(tasks):
+                task = mteb.get_task(task_name)
+                if (any([x in model_name for x in ["GritLM", "SFR", "gte-Qwen", "e5-mistral-7b-instruct"]])) or (any([x in task.metadata.name for x in ["MSMARCO"]])):
+                    prefix = slurm_prefix_8gpus
+                else:
+                    prefix = slurm_prefix
+                slurm_job_file = create_slurm_job_file(
+                    model_name,
+                    task.metadata.name,
+                    results_folder,
+                    prefix,
+                    slurm_jobs_folder,
+                )
+                slurm_job_files.append(slurm_job_file)
+                #break
+            #break
+        # if len(slurm_job_files) > 0:
+        #     break
+
+    # slurm_job_files = create_slurm_job_files(
+    #     model_names, tasks, results_folder, slurm_prefix, slurm_jobs_folder
+    # )
+
+    run_slurm_jobs(slurm_job_files[::-1])
