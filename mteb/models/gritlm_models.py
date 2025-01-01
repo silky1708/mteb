@@ -10,18 +10,10 @@ from .instruct_wrapper import instruct_wrapper
 logger = logging.getLogger(__name__)
 
 
-def gritlm_instruction(instruction: str = "") -> str:
-    #return "<|embed|>\n"
-    #return "<|user|>\nGiven a web search query, retrieve relevant passages that answer the query\n<|embed|>\n"
-    #return "<|user|>\nRetrieve semantically similar text.\n<|embed|>\n"
-    #return "<|user|>\nRetrieve semantically similar text.\n<|embed|>\n"
-    #return "<|user|>\nGiven a query, retrieve relevant passages \n<|embed|>\n"
-
-    return "<|user|>\nRetrieve relevant text.\n<|embed|>\n"
-
-    #return (
-    #    "<|user|>\n" + instruction + "\n<|embed|>\n" if instruction else "<|embed|>\n"
-    #)
+def gritlm_instruction(instruction: str = "", prompt_type=None) -> str:
+    return (
+        "<|user|>\n" + instruction + "\n<|embed|>\n" if instruction else "<|embed|>\n"
+    )
 
 
 gritlm7b = ModelMeta(
