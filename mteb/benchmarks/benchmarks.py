@@ -673,7 +673,7 @@ MTEB_code = Benchmark(
 
 
 MTEB_multilingual = Benchmark(
-    name="MTEB(multilingual)",
+    name="MTEB(Multilingual, beta)",
     tasks=get_tasks(
         tasks=[
             "BornholmBitextMining",
