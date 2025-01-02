@@ -65,7 +65,7 @@ def run_slurm_jobs(files: list[Path]) -> None:
         # Technically scheduler allows more than 250 concurrent jobs but usually at 250 all GPUs are busy anyways so it keeps the queue cleaner
         while int(
             subprocess.run(["squeue", "--me"], capture_output=True, text=True).stdout.count("\n")
-        ) > 250:
+        ) > 100:
             print("Waiting for jobs to finish...")
             subprocess.run(["sleep", "10"])
         subprocess.run(["sbatch", file])
