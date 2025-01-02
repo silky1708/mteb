@@ -37,7 +37,7 @@ def find_duplicate_jobs(job_commands):
             script_to_jobs[script_path].append(job_id)
 
     duplicates = {script: jobs for script, jobs in script_to_jobs.items() if len(jobs) > 1}
-    return script_to_jobs.keys(), duplicates
+    return script_to_jobs, duplicates
 
 # Function to cancel the most recent jobs among duplicates
 def cancel_recent_jobs(duplicates):
@@ -62,8 +62,8 @@ if __name__ == "__main__":
     all_scripts, duplicates = find_duplicate_jobs(job_commands)
 
     print("\nAll scripts currently running:")
-    for script in all_scripts:
-        print(f"  {script}")
+    for script, i in all_scripts.items():
+        print(f"  {script} ; {i}")
 
     print("\nJobs running duplicate scripts:")
     for script, jobs in duplicates.items():

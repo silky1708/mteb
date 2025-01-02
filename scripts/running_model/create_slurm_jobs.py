@@ -22,7 +22,7 @@ def create_slurm_job_file(
     model_name_without_slash = model_name.replace("/", "__")
     slurm_job += (
         f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} "
-        f"--co2_tracker true --batch_size 8 || (mkdir -p /data/niklas/mteb/failures && "
+        f"--co2_tracker true --batch_size 64 || (mkdir -p /data/niklas/mteb/failures && "
         f"echo '{model_name}_{task_name}' >> /data/niklas/mteb/failures/{model_name_without_slash}_{task_name}.txt)"
     )
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     slurm_jobs_folder.mkdir(exist_ok=True)
 
     import json
-    with open("/data/niklas/results/missing_results_7.json", "r") as f:
+    with open("/data/niklas/results/missing_results_10.json", "r") as f:
         x = json.load(f)
 
     slurm_job_files = []
@@ -145,6 +145,7 @@ if __name__ == "__main__":
         # if bench in ["LongEmbed", "MTEB(Europe, beta)", "MTEB(Indic, beta)", "MTEB(jpn)", "MTEB(multilingual)"]: continue
         print(f"Running benchmark {bench}")
         for j, (model, tasks) in enumerate(models.items()):
+            print(f"Running model {model}")
             # if j in [0, 1]: continue
             model_names = [x for x in MODEL_REGISTRY if model == x.split("/")[-1]]
             if len(model_names) == 0:
