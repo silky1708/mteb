@@ -65,7 +65,7 @@ def run_slurm_jobs(files: list[Path]) -> None:
         # Technically scheduler allows more than 250 concurrent jobs but usually at 250 all GPUs are busy anyways so it keeps the queue cleaner
         while int(
             subprocess.run(["squeue", "--me"], capture_output=True, text=True).stdout.count("\n")
-        ) > 100:
+        ) > 160:
             print("Waiting for jobs to finish...")
             subprocess.run(["sleep", "10"])
         subprocess.run(["sbatch", file])
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     slurm_jobs_folder.mkdir(exist_ok=True)
 
     import json
-    with open("/data/niklas/results/missing_results_10.json", "r") as f:
+    with open("/data/niklas/results/missing_results_11.json", "r") as f:
         x = json.load(f)
 
     slurm_job_files = []
