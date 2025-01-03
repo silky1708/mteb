@@ -22,7 +22,7 @@ def create_slurm_job_file(
     model_name_without_slash = model_name.replace("/", "__")
     slurm_job += (
         f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} "
-        f"--co2_tracker true --batch_size 4 || (mkdir -p /data/niklas/mteb/failures && "
+        f"--co2_tracker true --batch_size 64 || (mkdir -p /data/niklas/mteb/failures && "
         f"echo '{model_name}_{task_name}' >> /data/niklas/mteb/failures/{model_name_without_slash}_{task_name}.txt)"
     )
 
