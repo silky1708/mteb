@@ -22,7 +22,7 @@ def create_slurm_job_file(
     model_name_without_slash = model_name.replace("/", "__")
     slurm_job += (
         f"mteb run -m {model_name} -t {task_name} --output_folder {results_folder.resolve()} "
-        f"--co2_tracker true --batch_size 64 || (mkdir -p /data/niklas/mteb/failures && "
+        f"--co2_tracker true --batch_size 4 || (mkdir -p /data/niklas/mteb/failures && "
         f"echo '{model_name}_{task_name}' >> /data/niklas/mteb/failures/{model_name_without_slash}_{task_name}.txt)"
     )
 
@@ -65,7 +65,7 @@ def run_slurm_jobs(files: list[Path]) -> None:
         # Technically scheduler allows more than 250 concurrent jobs but usually at 250 all GPUs are busy anyways so it keeps the queue cleaner
         while int(
             subprocess.run(["squeue", "--me"], capture_output=True, text=True).stdout.count("\n")
-        ) > 160:
+        ) > 165:
             print("Waiting for jobs to finish...")
             subprocess.run(["sleep", "10"])
         subprocess.run(["sbatch", file])
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     slurm_jobs_folder.mkdir(exist_ok=True)
 
     import json
-    with open("/data/niklas/results/missing_results_11.json", "r") as f:
+    with open("/data/niklas/results/missing_results_13.json", "r") as f:
         x = json.load(f)
 
     slurm_job_files = []
@@ -183,4 +183,4 @@ if __name__ == "__main__":
     #     model_names, tasks, results_folder, slurm_prefix, slurm_jobs_folder
     # )
 
-    run_slurm_jobs(slurm_job_files[::-1])
+    run_slurm_jobs(slurm_job_files)
