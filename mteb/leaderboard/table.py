@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
 from mteb.models.overview import get_model_meta
-from mteb.overview import get_task
+from mteb.overview import get_task, get_tasks
 
 
 def borda_count(scores: pd.Series) -> pd.Series:
@@ -72,7 +72,7 @@ def get_column_types(df: pd.DataFrame) -> list[str]:
         if is_numeric_dtype(df[column_name]):
             types.append("number")
         else:
-            types.append("str")
+            types.append("markdown")
     return types
 
 
@@ -113,6 +113,17 @@ def format_max_tokens(max_tokens: float | None) -> str:
     return str(int(max_tokens))
 
 
+def zero_shot_emoji(model_meta, tasks):
+    if model_meta is None:
+        return ":warning:"
+    is_zero_shot = model_meta.is_zero_shot_on(tasks)
+    if is_zero_shot is None:
+        return ":warning:"
+    if is_zero_shot:
+        return ":white_check_mark:"
+    return ":x:"
+
+
 def scores_to_tables(
     scores_long: list[dict], search_query: str | None = None
 ) -> tuple[gr.DataFrame, gr.DataFrame]:
@@ -122,6 +133,7 @@ def scores_to_tables(
         )
         return gr.DataFrame(no_results_frame), gr.DataFrame(no_results_frame)
     data = pd.DataFrame.from_records(scores_long)
+    tasks = get_tasks(tasks=list(data["task_name"].unique()))
     data["task_type"] = data["task_name"].map(
         lambda task_name: get_task(task_name).metadata.type
     )
@@ -166,6 +178,9 @@ def scores_to_tables(
         "Number of Parameters",
         model_metas.map(lambda m: format_n_parameters(m.n_parameters)),
     )
+    joint_table.insert(
+        1, "Zero-shot", model_metas.map(lambda m: zero_shot_emoji(m, tasks))
+    )
     joint_table = joint_table.sort_values("borda_rank", ascending=True)
     per_task = per_task.loc[joint_table.set_index("model_name").index]
     # Removing HF organization from model
@@ -184,7 +199,7 @@ def scores_to_tables(
         columns={
             "model_name": "Model",
             "mean_by_task_type": "Mean (TaskType)",
-            "mean": "Mean (Task)",
+            "mean": "Mean (Task lort)",
         }
     )
     per_task = per_task.reset_index()
@@ -204,28 +219,30 @@ def scores_to_tables(
     column_types = get_column_types(joint_table)
     # setting model name column to markdown
     column_types[1] = "markdown"
-    score_columns = ["Mean (Task)", "Mean (TaskType)", *mean_per_type.columns]
+    score_columns = ["Mean (Task lort)", "Mean (TaskType)", *mean_per_type.columns]
     joint_table[score_columns] = joint_table[score_columns].map(format_scores)
-    joint_table_style = (
-        joint_table.style.format(
-            {**{column: "{:.2f}" for column in score_columns}, "Rank (Borda)": "{:.0f}"}
-        )
-        .highlight_min("Rank (Borda)", props="font-weight: bold")
-        .highlight_max(subset=score_columns, props="font-weight: bold")
-    )
+    print(joint_table)
+    # joint_table_style = (
+    #     joint_table.style.format(
+    #         {**{column: "{:.2f}" for column in score_columns}, "Rank (Borda)": "{:.0f}"}
+    #     )
+    #     .highlight_min("Rank (Borda)", props="font-weight: bold")
+    #     .highlight_max(subset=score_columns, props="font-weight: bold")
+    # )
     task_score_columns = per_task.select_dtypes("number").columns
     per_task[task_score_columns] *= 100
     per_task_style = per_task.style.format(
         "{:.2f}", subset=task_score_columns
     ).highlight_max(subset=task_score_columns, props="font-weight: bold")
     return (
-        gr.DataFrame(
-            joint_table_style,
-            column_widths=column_widths,
-            datatype=column_types,
-            interactive=False,
-            wrap=True,
-        ),
+        # gr.DataFrame(
+        #     joint_table_style,
+        #     column_widths=column_widths,
+        #     datatype=column_types,
+        #     interactive=False,
+        #     wrap=True,
+        # ),
+        gr.DataFrame(joint_table, interactive=True),
         gr.DataFrame(
             per_task_style, column_widths=task_column_widths, interactive=False
         ),

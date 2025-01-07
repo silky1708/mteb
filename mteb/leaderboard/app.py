@@ -162,7 +162,9 @@ head = """
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 """
 
-with gr.Blocks(fill_width=True, theme=gr.themes.Base(), head=head) as demo:
+with gr.Blocks(
+    fill_width=True, theme=gr.themes.Base(), head=head, delete_cache=(10, 10)
+) as demo:
     with gr.Row():
         with gr.Column(scale=5):
             gr.Markdown(
