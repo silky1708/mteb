@@ -210,7 +210,12 @@ class AbsTask(ABC):
         descriptive_stats = {}
         hf_subset_stat = "hf_subset_descriptive_stats"
         eval_splits = self.metadata.eval_splits
-        if self.metadata.type in ["Classification", "MultilabelClassification"]:
+        if self.metadata.type in [
+            "Classification",
+            "MultilabelClassification",
+            "ImageClassification",
+            "ImageMultilabelClassification",
+        ]:
             eval_splits += ["train"]
 
         pbar_split = tqdm.tqdm(eval_splits, desc="Processing Splits...")

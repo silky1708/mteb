@@ -433,6 +433,8 @@ class TaskMetadata(BaseModel):
     def descriptive_stat_path(self) -> Path:
         """Return the path to the descriptive statistics file."""
         descriptive_stat_base_dir = Path(__file__).parent.parent / "descriptive_stats"
+        if "image" in self.modalities:
+            descriptive_stat_base_dir = descriptive_stat_base_dir / "Image"
         if not descriptive_stat_base_dir.exists():
             descriptive_stat_base_dir.mkdir()
         task_type_dir = descriptive_stat_base_dir / self.type
