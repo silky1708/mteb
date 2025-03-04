@@ -647,7 +647,11 @@ OrdalieTech__Solon_embeddings_large_0_1 = ModelMeta(
     reference="https://huggingface.co/OrdalieTech/Solon-embeddings-large-0.1",
     similarity_fn_name="cosine",
     use_instructions=None,
-    training_datasets=None,
+    training_datasets={
+        # MMarco-fr
+        "MIRACLReranking": ["train"],
+        "MIRACLRetrieval": ["train"],
+    },
     adapted_from="solon-large-06-BIG",
     superseded_by=None,
 )
