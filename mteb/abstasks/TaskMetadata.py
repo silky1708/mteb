@@ -59,7 +59,10 @@ TASK_SUBTYPE = Literal[
     "Activity recognition",
     "Tumor detection",
     "Duplicate Detection",
-    "Rendered semantic textual similarity",
+    "Environment Sound Classification",
+    "Gunshot Audio Classification",
+    "Instrument Source Classification",
+    "Gender Clustering",
 ]
 
 TASK_DOMAIN = Literal[
@@ -88,6 +91,7 @@ TASK_DOMAIN = Literal[
     "Financial",
     "Chemistry",
     "Financial",
+    "Music",
 ]
 
 SAMPLE_CREATION_METHOD = Literal[
@@ -102,6 +106,7 @@ SAMPLE_CREATION_METHOD = Literal[
     "rendered",
     "multiple",
 ]
+<<<<<<< HEAD
 
 MIEB_TASK_TYPE = (
     "Any2AnyMultiChoice",
@@ -119,6 +124,10 @@ MIEB_TASK_TYPE = (
 )
 
 TASK_TYPE = (
+=======
+TASK_TYPE = Literal[
+    "AudioClustering",
+>>>>>>> bf9fe166c84eeed2675f32d258c03681a3bfc292
     "BitextMining",
     "Classification",
     "MultilabelClassification",
@@ -130,9 +139,26 @@ TASK_TYPE = (
     "Summarization",
     "InstructionRetrieval",
     "Speed",
+<<<<<<< HEAD
 ) + MIEB_TASK_TYPE
 
 TASK_TYPE = Literal[TASK_TYPE]
+=======
+    "Any2AnyMultiChoice",
+    "Any2AnyRetrieval",
+    "Any2TextMutipleChoice",
+    "ImageClustering",
+    "ImageClassification",
+    "ImageMultilabelClassification",
+    "ImageTextPairClassification",
+    "VisualSTS",
+    "ZeroShotClassification",
+    "AudioMultilabelClassification",
+    "AudioZeroshotClassification",
+    "AudioClassification",
+    "AudioCrossFoldClassification",
+]
+>>>>>>> bf9fe166c84eeed2675f32d258c03681a3bfc292
 
 
 TASK_CATEGORY = Literal[
@@ -148,6 +174,15 @@ TASK_CATEGORY = Literal[
     "i2it",  # image-to-image+text
     "t2it",  # text-to-image+text
     "it2it",  # image+text-to-image+text
+    "a2a",  # audio to audio
+    "a2t",  # audio to text
+    "t2a",  # text to audio
+    "at2t",  # audio+text-to-text
+    "at2a",  # audio+text-to-audio
+    "a2at",  # audio-to-audio+text
+    "t2at",  # text-to-audio+text
+    "at2at",  # audio+text-to-audio+text
+    "a2a",  # audio-to-audio
 ]
 
 ANNOTATOR_TYPE = Literal[

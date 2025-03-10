@@ -19,13 +19,18 @@ from mteb.abstasks.MultiSubsetLoader import MultiSubsetLoader
 from mteb.overview import TASKS_REGISTRY
 
 from ..test_benchmark.task_grid import (
+    MOCK_MAEB_TASK_GRID_AS_STRING,
     MOCK_MIEB_TASK_GRID_AS_STRING,
     MOCK_TASK_TEST_GRID_AS_STRING,
 )
 
 logging.basicConfig(level=logging.INFO)
 
-ALL_MOCK_TASKS = MOCK_TASK_TEST_GRID_AS_STRING + MOCK_MIEB_TASK_GRID_AS_STRING
+ALL_MOCK_TASKS = (
+    MOCK_TASK_TEST_GRID_AS_STRING
+    + MOCK_MIEB_TASK_GRID_AS_STRING
+    + MOCK_MAEB_TASK_GRID_AS_STRING
+)
 
 tasks = [t for t in MTEB().tasks_cls if t.metadata.name not in ALL_MOCK_TASKS]
 
@@ -66,25 +71,54 @@ def test_load_data(
             mock_dataset_transform.assert_called_once()
 
 
-@pytest.mark.test_datasets
-@pytest.mark.flaky(
-    reruns=3,
-    reruns_delay=5,
-    only_rerun=["AssertionError"],
-    reason="May fail due to network issues",
-)
-@pytest.mark.parametrize("dataset_revision", dataset_revisions)
-def test_dataset_on_hf(dataset_revision: tuple[str, str]):
-    repo_id, revision = dataset_revision
-    try:
-        huggingface_hub.dataset_info(repo_id, revision=revision)
-    except (
-        huggingface_hub.errors.RepositoryNotFoundError,
-        huggingface_hub.errors.RevisionNotFoundError,
-    ):
-        assert False, f"Dataset {repo_id} - {revision} not available"
-    except Exception as e:
-        assert False, f"Dataset {repo_id} - {revision} failed with {e}"
+async def check_dataset_on_hf(
+    session: aiohttp.ClientSession, dataset: str, revision: str
+) -> bool:
+    url = f"https://huggingface.co/datasets/{dataset}/tree/{revision}"
+    async with session.head(url) as response:
+        return response.status == 200
+
+
+async def check_datasets_are_available_on_hf(tasks):
+    does_not_exist = []
+    async with aiohttp.ClientSession() as session:
+        tasks_checks = [
+            check_dataset_on_hf(
+                session,
+                task.metadata.dataset["path"],
+                task.metadata.dataset["revision"],
+            )
+            for task in tasks
+            if not isinstance(task, AbsTaskSpeedTask)
+        ]
+        datasets_exists = await asyncio.gather(*tasks_checks)
+
+    for task, ds_exists in zip(tasks, datasets_exists):
+        if not ds_exists:
+            does_not_exist.append(
+                (task.metadata.dataset["path"], task.metadata.dataset["revision"])
+            )
+
+    if does_not_exist:
+        pretty_print = "\n".join(
+            [f"{ds[0]} - revision {ds[1]}" for ds in does_not_exist]
+        )
+        assert False, f"Datasets not available on Hugging Face:\n{pretty_print}"
+
+
+def test_dataset_availability():
+    """Checks if the datasets are available on Hugging Face using both their name and revision."""
+    tasks = MTEB().tasks_cls
+    # do not check aggregated tasks as they don't have a dataset
+    tasks = [t for t in tasks if not isinstance(t, AbsTaskAggregate)]
+    tasks = [
+        t
+        for t in tasks
+        if t.metadata.name not in ALL_MOCK_TASKS
+        and t.metadata.name
+        != "AfriSentiLangClassification"  # HOTFIX: Issue#1777. Remove this line when issue is resolved.
+    ]
+    asyncio.run(check_datasets_are_available_on_hf(tasks))
 
 
 def test_superseded_dataset_exists():
